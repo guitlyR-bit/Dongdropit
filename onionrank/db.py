@@ -84,7 +84,8 @@ def domain_by_onion(onion):
 
 def domain_stats(domain_id):
     return get_db().execute(
-        """SELECT COALESCE(SUM(amount_sats),0) AS total_sats, COUNT(*) AS payments
+        """SELECT COALESCE(SUM(amount_sats),0) AS total_sats, COUNT(*) AS payments,
+                  MAX(paid_at) AS last_paid
            FROM orders WHERE domain_id = ? AND status = 'paid'""",
         (domain_id,),
     ).fetchone()

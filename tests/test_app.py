@@ -39,6 +39,13 @@ def test_ranking_order(client):
     assert html.index("Alfa") < html.index("Beta")
 
 
+def test_amounts_not_public(client):
+    boost(client, A, 123457, "Alfa")
+    for url in ("/", f"/d/{A}"):
+        html = client.get(url).get_data(as_text=True)
+        assert "123 457" not in html and "123457" not in html and "0.00123457" not in html
+
+
 def test_pending_not_counted(client):
     client.post("/boost", data={"onion": A, "title": "Alfa", "amount_sats": 5000})
     assert "Alfa" not in client.get("/").get_data(as_text=True)

@@ -11,9 +11,9 @@
 </div>
 
 <div class="cards">
-  <div class="card g"><h3>TOTAL_SATS_POOL</h3><b>{{ stats.total_sats|sats }}</b><small>{{ stats.total_sats|btc }} BTC</small></div>
   <div class="card b"><h3>RANKED_DOMAINS</h3><b>{{ stats.domains }}</b><small>active in the ranking</small></div>
   <div class="card o"><h3>CONFIRMED_TX</h3><b>{{ stats.payments }}</b><small>confirmed payments</small></div>
+  <div class="card g"><h3>CURRENT_LEADER</h3><b class="lead-name">{{ rows[0].title if rows else '--' }}</b><small>rank #01</small></div>
 </div>
 
 <div class="grid">
@@ -22,15 +22,15 @@
   {% set q = request.args.get('q','')|lower %}
   {% if rows %}
   <table class="rank">
-    <thead><tr><th>#</th><th>DOMAIN</th><th class="num">VALUE</th><th class="num hide-s">TX</th></tr></thead>
+    <thead><tr><th>#</th><th>DOMAIN</th><th class="num">BOOSTS</th><th class="num hide-s">LAST_BOOST</th></tr></thead>
     <tbody>
     {% for r in rows %}{% if not q or q in r.onion or q in r.title|lower %}
     <tr class="{{ 'top' if loop.index <= 3 }}">
       <td class="pos">{{ '%02d'|format(loop.index) }}</td>
       <td><a class="title" href="{{ url_for('domain', onion=r.onion) }}">{{ r.title }}</a>
         <code class="onion">{{ r.onion }}</code></td>
-      <td class="num val">+{{ r.total_sats|sats }}<small>sats</small></td>
-      <td class="num hide-s dim">{{ r.payments }}</td>
+      <td class="num val">{{ r.payments }}</td>
+      <td class="num hide-s dim">{{ r.last_paid|short }}</td>
     </tr>
     {% endif %}{% endfor %}
     </tbody>
@@ -44,7 +44,7 @@
   <section class="panel">
     <div class="ph"><span>TX_LOGS</span></div>
     <ul class="log">
-    {% for p in recent %}<li><span class="dim">{{ p.paid_at|short }}</span> <span class="t">{{ p.title }}</span> <b>+{{ p.amount_sats|sats }}</b></li>
+    {% for p in recent %}<li><span class="dim">{{ p.paid_at|short }}</span> <span class="t">{{ p.title }}</span> <b>BOOSTED</b></li>
     {% else %}<li class="dim">no transactions yet</li>{% endfor %}
     </ul>
   </section>

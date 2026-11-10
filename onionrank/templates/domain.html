@@ -9,13 +9,13 @@
 {% if d.description %}<p>{{ d.description }}</p>{% endif %}
 <div class="cards">
   <div class="card g"><h3>CURRENT_RANK</h3><b>{{ '#%02d'|format(rank) if rank else '--' }}</b><small>all-time position</small></div>
-  <div class="card b"><h3>TOTAL_SATS</h3><b>{{ stats.total_sats|sats }}</b><small>{{ stats.total_sats|btc }} BTC</small></div>
+  <div class="card b"><h3>LAST_BOOST</h3><b>{{ stats.last_paid|short }}</b><small>UTC</small></div>
   <div class="card o"><h3>PAYMENTS</h3><b>{{ stats.payments }}</b><small>confirmed</small></div>
 </div>
 <section class="panel">
   <div class="ph"><span><i class="dot"></i>SUPPORTER_MSGS</span></div>
   <ul class="log">
-  {% for m in messages %}<li><span class="dim">{{ m.paid_at|short }}</span> <span class="t">"{{ m.message }}"</span> <b>+{{ m.amount_sats|sats }}</b></li>
+  {% for m in messages %}<li><span class="dim">{{ m.paid_at|short }}</span> <span class="t">"{{ m.message }}"</span></li>
   {% else %}<li class="dim">no messages yet</li>{% endfor %}
   </ul>
 </section>
