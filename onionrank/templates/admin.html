@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Admin – OnionRANK{% endblock %}
+{% block content %}
+<h1>Administrace</h1>
+<h2>Domény</h2>
+<table class="rank">
+<thead><tr><th>Doména</th><th class="num">sats</th><th>Stav</th><th></th></tr></thead>
+{% for d in domains %}
+<tr><td>{{ d.title }}<code class="onion">{{ d.onion }}</code></td><td class="num">{{ d.total_sats|sats }}</td>
+<td>{{ 'vyřazena' if d.banned else 'aktivní' }}</td>
+<td><form method="post" action="{{ url_for('admin_ban') }}">
+  <input type="hidden" name="t" value="{{ t }}"><input type="hidden" name="onion" value="{{ d.onion }}">
+  <input type="hidden" name="banned" value="{{ '0' if d.banned else '1' }}">
+  <button>{{ 'Obnovit' if d.banned else 'Vyřadit' }}</button></form></td></tr>
+{% endfor %}
+</table>
+<h2>Čekající objednávky</h2>
+<table class="rank">
+{% for o in pending %}
+<tr><td><code>{{ o.id }}</code> {{ o.onion }}</td><td class="num">{{ o.amount_sats|sats }}</td><td>{{ o.created_at|when }}</td>
+<td><form method="post" action="{{ url_for('admin_mark') }}">
+  <input type="hidden" name="t" value="{{ t }}"><input type="hidden" name="order_id" value="{{ o.id }}">
+  <button name="status" value="paid">Zaplaceno</button> <button name="status" value="expired">Zrušit</button></form></td></tr>
+{% else %}<tr><td>Žádné.</td></tr>{% endfor %}
+</table>
+{% endblock %}

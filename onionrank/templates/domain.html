@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ d.title }} – OnionRANK{% endblock %}
+{% block content %}
+<h1>{{ d.title }}</h1>
+<p><code class="onion">{{ d.onion }}</code></p>
+<p class="note">Odkaz záměrně není klikací – adresu si zkontroluj a otevři na vlastní riziko.</p>
+{% if d.description %}<p>{{ d.description }}</p>{% endif %}
+<div class="stats">
+  <div><b>{{ '#' ~ rank if rank else '–' }}</b><span>pozice</span></div>
+  <div><b>{{ stats.total_sats|sats }}</b><span>sats celkem</span></div>
+  <div><b>{{ stats.payments }}</b><span>plateb</span></div>
+</div>
+<p><a class="btn" href="{{ url_for('boost', onion=d.onion) }}">Posunout výš ⚡</a></p>
+{% if messages %}
+<h2>Vzkazy podporovatelů</h2>
+<ul class="msgs">
+{% for m in messages %}<li><b>{{ m.amount_sats|sats }} sats</b> „{{ m.message }}“ <small>{{ m.paid_at|when }}</small></li>{% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

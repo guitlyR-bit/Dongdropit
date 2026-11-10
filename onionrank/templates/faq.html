@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Jak to funguje – OnionRANK{% endblock %}
+{% block content %}
+<h1>Jak to funguje</h1>
+<dl class="faq">
+<dt>Co je OnionRANK?</dt><dd>Zábavný žebříček .onion domén. Pořadí určuje jen součet zaplacených BTC – nic jiného.</dd>
+<dt>Jak se dostanu výš?</dt><dd>Na stránce <a href="{{ url_for('boost') }}">Posunout doménu</a> zadáš adresu a částku, zaplatíš v BTC a po potvrzení se částka přičte.</dd>
+<dt>Může platit kdokoli?</dt><dd>Ano. Vlastník, fanoušek i konkurence (ta ale tím jen pomůže 😉).</dd>
+<dt>Vrací se peníze?</dt><dd>Ne. Platby jsou nevratné a slouží čistě pro zábavu.</dd>
+<dt>Žebříčky 7/30 dní?</dt><dd>Počítají jen platby potvrzené v daném období – i malá doména tak může na chvíli vyskočit nahoru.</dd>
+<dt>Co obsah webů?</dt><dd>OnionRANK obsah neověřuje ani nepropaguje. Domény s nelegálním obsahem (zejména zneužívání dětí, obchod se zbraněmi či drogami, podvody) jsou vyřazeny bez náhrady.</dd>
+<dt>Potřebuji JavaScript?</dt><dd>Ne. Web funguje i v režimu Safest v Tor Browseru.</dd>
+</dl>
+{% endblock %}

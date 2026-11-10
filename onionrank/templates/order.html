@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Objednávka – OnionRANK{% endblock %}
+{% block content %}
+<h1>Objednávka</h1>
+<div class="card">
+  <p>Doména: <b>{{ o.title }}</b> <code class="onion">{{ o.onion }}</code></p>
+  <p>Částka: <b>{{ o.amount_sats|sats }} sats</b> ({{ o.amount_sats|btc }} BTC)</p>
+  <p>Stav:
+    {% if o.status == 'paid' %}<span class="ok">✅ Zaplaceno {{ o.paid_at|when }} – započteno do žebříčku.</span>
+    {% elif o.status == 'expired' %}<span class="err">⌛ Vypršelo / neplatné.</span>
+    {% else %}<span>⏳ Čeká na platbu a potvrzení v síti.</span>{% endif %}
+  </p>
+  {% if o.status == 'pending' %}
+    {% if o.checkout_url %}<p><a class="btn" href="{{ o.checkout_url }}">Přejít k platbě</a></p>{% endif %}
+    {% if provider_name == 'demo' %}
+    <form method="post" action="{{ url_for('demo_pay', order_id=o.id) }}"><button>Simulovat platbu (demo)</button></form>
+    {% endif %}
+    <p class="hint">Stránku si ulož do záložek a obnov ji později – stav se aktualizuje po potvrzení transakce.</p>
+  {% endif %}
+  <p><a href="{{ url_for('domain', onion=o.onion) }}">← Detail domény</a></p>
+</div>
+{% endblock %}

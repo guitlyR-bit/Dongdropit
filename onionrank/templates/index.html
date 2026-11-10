@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Žebříček .onion domén</h1>
+<p class="lead">Kdo zaplatí víc satoshi, je výš. Tak jednoduché to je.</p>
+<p class="tabs">
+  <a href="?p=all" class="{{ 'on' if period=='all' }}">Celkově</a>
+  <a href="?p=30d" class="{{ 'on' if period=='30d' }}">30 dní</a>
+  <a href="?p=7d" class="{{ 'on' if period=='7d' }}">7 dní</a>
+</p>
+{% if rows %}
+<table class="rank">
+  <thead><tr><th>#</th><th>Doména</th><th class="num">Zaplaceno</th><th class="num">Plateb</th></tr></thead>
+  <tbody>
+  {% for r in rows %}
+  <tr class="{{ 'top' if loop.index <= 3 }}">
+    <td class="pos">{{ ['🥇','🥈','🥉'][loop.index0] if loop.index <= 3 else loop.index }}</td>
+    <td>
+      <a class="title" href="{{ url_for('domain', onion=r.onion) }}">{{ r.title }}</a>
+      <code class="onion">{{ r.onion }}</code>
+      {% if r.description %}<small>{{ r.description }}</small>{% endif %}
+    </td>
+    <td class="num">{{ r.total_sats|sats }} sats<br><small>{{ r.total_sats|btc }} BTC</small></td>
+    <td class="num">{{ r.payments }}</td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}
+<p class="empty">Žebříček je zatím prázdný. <a href="{{ url_for('boost') }}">Buď první!</a></p>
+{% endif %}
+{% endblock %}

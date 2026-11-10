@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}OnionRANK{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header>
+  <a class="logo" href="{{ url_for('index') }}">🧅 Onion<b>RANK</b></a>
+  <nav>
+    <a href="{{ url_for('index') }}">Žebříček</a>
+    <a href="{{ url_for('boost') }}">Posunout doménu</a>
+    <a href="{{ url_for('faq') }}">Jak to funguje</a>
+  </nav>
+</header>
+{% if provider_name == 'demo' %}<p class="banner">DEMO režim – platby nejsou skutečné.</p>{% endif %}
+<main>
+{% with msgs = get_flashed_messages(with_categories=true) %}
+  {% for cat, m in msgs %}<p class="flash {{ cat }}">{{ m }}</p>{% endfor %}
+{% endwith %}
+{% block content %}{% endblock %}
+</main>
+<footer>OnionRANK – žebříček jen pro zábavu. Pořadí je dané výhradně zaplacenými BTC, nic neříká o obsahu ani důvěryhodnosti webu.</footer>
+</body>
+</html>
