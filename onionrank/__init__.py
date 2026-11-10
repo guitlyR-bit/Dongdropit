@@ -36,8 +36,12 @@ def fmt_btc(sats):
     return f"{sats / 1e8:.8f}"
 
 
+def fmt_short(ts):
+    return time.strftime("%m-%d %H:%M", time.gmtime(ts)) if ts else "--"
+
+
 def fmt_time(ts):
-    return time.strftime("%d. %m. %Y %H:%M", time.gmtime(ts)) + " UTC" if ts else "–"
+    return time.strftime("%Y-%m-%d %H:%M", time.gmtime(ts)) + " UTC" if ts else "--"
 
 
 def create_app(test_config=None):
@@ -66,11 +70,15 @@ def create_app(test_config=None):
 
     provider = make_provider(app.config)
     app.extensions["payments"] = provider
-    app.jinja_env.filters.update(sats=fmt_sats, btc=fmt_btc, when=fmt_time)
+    app.jinja_env.filters.update(sats=fmt_sats, btc=fmt_btc, when=fmt_time, short=fmt_short)
 
     @app.context_processor
     def inject():
-        return {"provider_name": provider.name, "min_sats": app.config["MIN_SATS"]}
+        return {
+            "provider_name": provider.name,
+            "min_sats": app.config["MIN_SATS"],
+            "endpoint": request.endpoint,
+        }
 
     @app.after_request
     def security_headers(resp):
@@ -89,7 +97,13 @@ def create_app(test_config=None):
     def index():
         period = request.args.get("p", "all")
         since = {"30d": time.time() - 30 * 86400, "7d": time.time() - 7 * 86400}.get(period)
-        return render_template("index.html", rows=db.ranking(since=since), period=period)
+        return render_template(
+            "index.html",
+            rows=db.ranking(since=since),
+            period=period,
+            stats=db.global_stats(),
+            recent=db.recent_payments(),
+        )
 
     @app.get("/d/<onion>")
     def domain(onion):
@@ -121,17 +135,17 @@ def create_app(test_config=None):
 
         errors = []
         if not onion:
-            errors.append("Neplatná adresa – zadej v3 .onion adresu (56 znaků).")
+            errors.append("Invalid address – enter a v3 .onion address (56 characters).")
         if amount < app.config["MIN_SATS"] or amount > app.config["MAX_SATS"]:
             errors.append(
-                f"Částka musí být mezi {fmt_sats(app.config['MIN_SATS'])} a "
+                f"Amount must be between {fmt_sats(app.config['MIN_SATS'])} and "
                 f"{fmt_sats(app.config['MAX_SATS'])} sats."
             )
         existing = db.domain_by_onion(onion) if onion else None
         if existing and existing["banned"]:
-            errors.append("Tato doména je ze žebříčku vyřazena.")
+            errors.append("This domain has been removed from the leaderboard.")
         if not existing and not title:
-            errors.append("Nová doména potřebuje název.")
+            errors.append("A new domain needs a title.")
         if errors:
             for e in errors:
                 flash(e, "error")
@@ -149,7 +163,7 @@ def create_app(test_config=None):
         except PaymentError as e:
             app.logger.error("invoice failed: %s", e)
             db.mark_order(order_id, "expired")
-            flash("Platební brána je teď nedostupná, zkus to prosím později.", "error")
+            flash("The payment gateway is unavailable right now, please try again later.", "error")
             return render_template("boost.html", form=form), 502
         db.set_order_invoice(order_id, inv["invoice_id"], inv["checkout_url"])
         if inv["checkout_url"]:
@@ -179,7 +193,7 @@ def create_app(test_config=None):
         if not db.get_order(order_id):
             abort(404)
         db.mark_order(order_id, "paid")
-        flash("Demo platba připsána.", "ok")
+        flash("Demo payment credited.", "ok")
         return redirect(url_for("order", order_id=order_id))
 
     @app.get("/faq")

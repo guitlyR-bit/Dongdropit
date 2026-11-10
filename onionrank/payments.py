@@ -52,9 +52,9 @@ class BTCPayProvider:
                 **kw,
             )
         except requests.RequestException as e:
-            raise PaymentError(f"BTCPay nedostupný: {e}") from e
+            raise PaymentError(f"BTCPay unreachable: {e}") from e
         if r.status_code >= 400:
-            raise PaymentError(f"BTCPay chyba {r.status_code}: {r.text[:200]}")
+            raise PaymentError(f"BTCPay error {r.status_code}: {r.text[:200]}")
         return r.json()
 
     def create_invoice(self, order_id, amount_sats, description, redirect_url):

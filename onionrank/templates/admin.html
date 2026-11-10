@@ -1,26 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Admin – OnionRANK{% endblock %}
 {% block content %}
-<h1>Administrace</h1>
-<h2>Domény</h2>
+<div class="head"><div><h1>ADMIN_CONSOLE</h1><p class="status">Status: <b>ROOT</b></p></div></div>
+<section class="panel">
+<div class="ph"><span>DOMAINS</span></div>
 <table class="rank">
-<thead><tr><th>Doména</th><th class="num">sats</th><th>Stav</th><th></th></tr></thead>
+<thead><tr><th>DOMAIN</th><th class="num">SATS</th><th>STATE</th><th></th></tr></thead>
 {% for d in domains %}
 <tr><td>{{ d.title }}<code class="onion">{{ d.onion }}</code></td><td class="num">{{ d.total_sats|sats }}</td>
-<td>{{ 'vyřazena' if d.banned else 'aktivní' }}</td>
+<td class="{{ 'err' if d.banned else 'ok' }}">{{ 'BANNED' if d.banned else 'ACTIVE' }}</td>
 <td><form method="post" action="{{ url_for('admin_ban') }}">
   <input type="hidden" name="t" value="{{ t }}"><input type="hidden" name="onion" value="{{ d.onion }}">
   <input type="hidden" name="banned" value="{{ '0' if d.banned else '1' }}">
-  <button>{{ 'Obnovit' if d.banned else 'Vyřadit' }}</button></form></td></tr>
+  <button class="{{ 'exec' if d.banned else 'danger' }}">{{ 'unban' if d.banned else 'ban' }}</button></form></td></tr>
 {% endfor %}
 </table>
-<h2>Čekající objednávky</h2>
+</section>
+<section class="panel">
+<div class="ph"><span>PENDING_ORDERS</span></div>
 <table class="rank">
 {% for o in pending %}
-<tr><td><code>{{ o.id }}</code> {{ o.onion }}</td><td class="num">{{ o.amount_sats|sats }}</td><td>{{ o.created_at|when }}</td>
+<tr><td><code>{{ o.id }}</code><code class="onion">{{ o.onion }}</code></td><td class="num">{{ o.amount_sats|sats }}</td><td class="dim">{{ o.created_at|short }}</td>
 <td><form method="post" action="{{ url_for('admin_mark') }}">
   <input type="hidden" name="t" value="{{ t }}"><input type="hidden" name="order_id" value="{{ o.id }}">
-  <button name="status" value="paid">Zaplaceno</button> <button name="status" value="expired">Zrušit</button></form></td></tr>
-{% else %}<tr><td>Žádné.</td></tr>{% endfor %}
+  <button class="exec" name="status" value="paid">paid</button> <button class="danger" name="status" value="expired">cancel</button></form></td></tr>
+{% else %}<tr><td class="dim">none</td></tr>{% endfor %}
 </table>
+</section>
 {% endblock %}

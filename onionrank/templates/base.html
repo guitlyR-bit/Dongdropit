@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="cs">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,21 +7,33 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-<header>
-  <a class="logo" href="{{ url_for('index') }}">🧅 Onion<b>RANK</b></a>
+<div class="shell">
+<aside class="side">
+  <a class="prompt" href="{{ url_for('index') }}">root@onionrank:~#<span class="cur"></span></a>
   <nav>
-    <a href="{{ url_for('index') }}">Žebříček</a>
-    <a href="{{ url_for('boost') }}">Posunout doménu</a>
-    <a href="{{ url_for('faq') }}">Jak to funguje</a>
+    <a href="{{ url_for('index') }}" class="{{ 'on' if endpoint=='index' }}"><i>▤</i>./leaderboard.sh</a>
+    <a href="{{ url_for('boost') }}" class="{{ 'on' if endpoint=='boost' }}"><i>⚡</i>./boost.sh</a>
+    <a href="{{ url_for('faq') }}" class="{{ 'on' if endpoint=='faq' }}"><i>?</i>./faq.md</a>
+    <p class="sep">-- SYSTEM INFO --</p>
+    <span class="dim"><i>◎</i>network: tor/v3</span>
+    <span class="dim"><i>₿</i>payments: {{ provider_name }}</span>
+    <span class="dim"><i>⌁</i>javascript: off</span>
   </nav>
-</header>
-{% if provider_name == 'demo' %}<p class="banner">DEMO režim – platby nejsou skutečné.</p>{% endif %}
-<main>
-{% with msgs = get_flashed_messages(with_categories=true) %}
-  {% for cat, m in msgs %}<p class="flash {{ cat }}">{{ m }}</p>{% endfor %}
-{% endwith %}
-{% block content %}{% endblock %}
-</main>
-<footer>OnionRANK – žebříček jen pro zábavu. Pořadí je dané výhradně zaplacenými BTC, nic neříká o obsahu ani důvěryhodnosti webu.</footer>
+  <div class="who"><b>OR</b><span>anon_user<small>127.0.0.1 via tor</small></span></div>
+</aside>
+<div class="main">
+  <form class="topbar" action="{{ url_for('index') }}" method="get">
+    <span>&gt;</span><input name="q" placeholder="grep 'domain'..." value="{{ request.args.get('q','') }}"><kbd>ENTER</kbd>
+  </form>
+  {% if provider_name == 'demo' %}<p class="banner">[WARN] DEMO_MODE=1 — payments are not real</p>{% endif %}
+  <main>
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% for cat, m in msgs %}<p class="flash {{ cat }}">{{ '[OK]' if cat=='ok' else '[ERR]' }} {{ m }}</p>{% endfor %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+  </main>
+  <footer>ONIONRANK v1.0 // a leaderboard just for fun // rank = BTC paid, says nothing about site content</footer>
+</div>
+</div>
 </body>
 </html>

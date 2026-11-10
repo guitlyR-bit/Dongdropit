@@ -1,22 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Posunout doménu – OnionRANK{% endblock %}
+{% block title %}Boost – OnionRANK{% endblock %}
 {% block content %}
-<h1>Posunout doménu v žebříčku</h1>
-<p>Každý zaplacený satoshi se přičte k celkovému skóre domény. Platit může kdokoli – vlastník i fanoušek.</p>
-<form method="post" class="card">
-  <label>.onion adresa (v3)
-    <input name="onion" required maxlength="100" value="{{ form.get('onion','') }}" placeholder="abc…xyz.onion">
-  </label>
-  <fieldset>
-    <legend>Jen pro novou doménu</legend>
-    <label>Název <input name="title" maxlength="80" value="{{ form.get('title','') }}"></label>
-    <label>Krátký popis <textarea name="description" maxlength="280" rows="2">{{ form.get('description','') }}</textarea></label>
+<div class="head"><div><h1>BOOST_DOMAIN</h1><p class="status">Every sat you pay is added to the domain's score.</p></div></div>
+<form method="post" class="panel form">
+  <label>ONION_ADDRESS <span class="dim">(v3)</span>
+    <input name="onion" required maxlength="100" value="{{ form.get('onion','') }}" placeholder="abc…xyz.onion"></label>
+  <fieldset><legend>-- new domains only --</legend>
+    <label>TITLE <input name="title" maxlength="80" value="{{ form.get('title','') }}"></label>
+    <label>DESCRIPTION <textarea name="description" maxlength="280" rows="2">{{ form.get('description','') }}</textarea></label>
   </fieldset>
-  <label>Částka v satoshi (min. {{ min_sats|sats }})
-    <input name="amount_sats" type="number" min="{{ min_sats }}" step="1" required value="{{ form.get('amount_sats', 10000) }}">
-  </label>
-  <p class="hint">1 BTC = 100 000 000 sats. Částku pak zaplatíš v BTC na jednorázovou adresu.</p>
-  <label>Veřejný vzkaz (nepovinné) <input name="message" maxlength="140" value="{{ form.get('message','') }}"></label>
-  <button type="submit">Vytvořit platbu ⚡</button>
+  <label>AMOUNT_SATS <span class="dim">(min {{ min_sats|sats }})</span>
+    <input name="amount_sats" type="number" min="{{ min_sats }}" step="1" required value="{{ form.get('amount_sats', 10000) }}"></label>
+  <p class="dim">// 1 BTC = 100 000 000 sats, you will pay to a one-time address</p>
+  <label>PUBLIC_MSG <span class="dim">(optional)</span>
+    <input name="message" maxlength="140" value="{{ form.get('message','') }}"></label>
+  <button type="submit" class="exec">&gt; EXECUTE_PAYMENT</button>
 </form>
 {% endblock %}

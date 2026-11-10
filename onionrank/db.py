@@ -183,3 +183,21 @@ def pending_orders():
         """SELECT o.*, d.onion FROM orders o JOIN domains d ON d.id=o.domain_id
            WHERE o.status='pending' ORDER BY o.created_at DESC LIMIT 200"""
     ).fetchall()
+
+
+def global_stats():
+    return get_db().execute(
+        """SELECT COALESCE(SUM(o.amount_sats),0) AS total_sats, COUNT(o.id) AS payments,
+                  COUNT(DISTINCT o.domain_id) AS domains
+           FROM orders o JOIN domains d ON d.id=o.domain_id
+           WHERE o.status='paid' AND d.banned=0"""
+    ).fetchone()
+
+
+def recent_payments(limit=6):
+    return get_db().execute(
+        """SELECT o.amount_sats, o.paid_at, d.onion, d.title FROM orders o
+           JOIN domains d ON d.id=o.domain_id
+           WHERE o.status='paid' AND d.banned=0 ORDER BY o.paid_at DESC LIMIT ?""",
+        (limit,),
+    ).fetchall()

@@ -1,20 +1,22 @@
 {% extends "base.html" %}
 {% block title %}{{ d.title }} – OnionRANK{% endblock %}
 {% block content %}
-<h1>{{ d.title }}</h1>
-<p><code class="onion">{{ d.onion }}</code></p>
-<p class="note">Odkaz záměrně není klikací – adresu si zkontroluj a otevři na vlastní riziko.</p>
-{% if d.description %}<p>{{ d.description }}</p>{% endif %}
-<div class="stats">
-  <div><b>{{ '#' ~ rank if rank else '–' }}</b><span>pozice</span></div>
-  <div><b>{{ stats.total_sats|sats }}</b><span>sats celkem</span></div>
-  <div><b>{{ stats.payments }}</b><span>plateb</span></div>
+<div class="head">
+  <div><h1>{{ d.title }}</h1><p class="status"><code>{{ d.onion }}</code></p></div>
+  <div class="actions"><a class="exec" href="{{ url_for('boost', onion=d.onion) }}">&gt; BOOST</a></div>
 </div>
-<p><a class="btn" href="{{ url_for('boost', onion=d.onion) }}">Posunout výš ⚡</a></p>
-{% if messages %}
-<h2>Vzkazy podporovatelů</h2>
-<ul class="msgs">
-{% for m in messages %}<li><b>{{ m.amount_sats|sats }} sats</b> „{{ m.message }}“ <small>{{ m.paid_at|when }}</small></li>{% endfor %}
-</ul>
-{% endif %}
+<p class="dim">// address is intentionally not clickable – verify it and open at your own risk</p>
+{% if d.description %}<p>{{ d.description }}</p>{% endif %}
+<div class="cards">
+  <div class="card g"><h3>CURRENT_RANK</h3><b>{{ '#%02d'|format(rank) if rank else '--' }}</b><small>all-time position</small></div>
+  <div class="card b"><h3>TOTAL_SATS</h3><b>{{ stats.total_sats|sats }}</b><small>{{ stats.total_sats|btc }} BTC</small></div>
+  <div class="card o"><h3>PAYMENTS</h3><b>{{ stats.payments }}</b><small>confirmed</small></div>
+</div>
+<section class="panel">
+  <div class="ph"><span><i class="dot"></i>SUPPORTER_MSGS</span></div>
+  <ul class="log">
+  {% for m in messages %}<li><span class="dim">{{ m.paid_at|short }}</span> <span class="t">"{{ m.message }}"</span> <b>+{{ m.amount_sats|sats }}</b></li>
+  {% else %}<li class="dim">no messages yet</li>{% endfor %}
+  </ul>
+</section>
 {% endblock %}

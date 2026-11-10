@@ -3,11 +3,14 @@
 Zábavný žebříček `.onion` domén – pořadí určuje **jen součet zaplacených BTC**.
 Kdokoli (vlastník i fanoušek) může doménu „posunout“ platbou v bitcoinu.
 
+* web v angličtině, terminálový „hacker“ vzhled
 * Python + Flask + SQLite, **bez JavaScriptu** (funguje v Tor Browseru v režimu *Safest*)
 * žebříčky: celkově / 30 dní / 7 dní, detail domény, veřejné vzkazy u plateb
 * platby přes **BTCPay Server** (self-hosted, jednorázová adresa pro každou platbu, podepsaný webhook + kontrola stavu přímo u BTCPay)
 * admin: vyřazení domén, ruční označení objednávek
 * přísná CSP, žádné externí zdroje, žádný referrer, adresy domén nejsou klikací odkazy
+
+➡️ **Kompletní návod ke zprovoznění na Toru: [INSTALL.md](INSTALL.md)** (instalace jedním příkazem: `deploy/install.sh`)
 
 ## Lokální spuštění (demo platby)
 
