@@ -19,6 +19,9 @@ apt-get update -qq
 apt-get install -y -qq tor python3 python3-venv git curl >/dev/null
 
 say "2/6 Stahuji aplikaci do $APP_DIR…"
+# the checkout is owned by the service user; let root's git work on it
+git config --global --get-all safe.directory 2>/dev/null | grep -qx "$APP_DIR" \
+  || git config --global --add safe.directory "$APP_DIR"
 if [ -d "$APP_DIR/.git" ]; then
   git -C "$APP_DIR" fetch -q origin "$BRANCH"
   git -C "$APP_DIR" checkout -q "$BRANCH"
