@@ -70,6 +70,27 @@ def test_xss_escaped(client):
     assert "<script>x" not in client.get("/").get_data(as_text=True)
 
 
+def test_btcpay_local_mode(monkeypatch):
+    seen = {}
+
+    class R:
+        status_code = 200
+        def json(self):
+            return {"id": "inv1", "checkoutLink": "http://btcpay.local/i/inv1?x=1"}
+
+    def fake(method, url, headers=None, proxies=None, **kw):
+        seen.update(url=url, headers=headers, proxies=proxies)
+        return R()
+
+    monkeypatch.setattr("onionrank.payments.requests.request", fake)
+    p = BTCPayProvider("http://127.0.0.1:8081", "S", "K", "W",
+                       host_header="btcpay.local", public_url="http://" + "p" * 56 + ".onion/")
+    inv = p.create_invoice("o1", 10000, "d", "http://x")
+    assert seen["url"] == "http://127.0.0.1:8081/api/v1/stores/S/invoices"
+    assert seen["headers"]["Host"] == "btcpay.local" and seen["proxies"] is None
+    assert inv["checkout_url"] == "http://" + "p" * 56 + ".onion/i/inv1?x=1"
+
+
 def test_btcpay_signature():
     p = BTCPayProvider("https://x", "s", "k", "whsec")
     body = b'{"a":1}'

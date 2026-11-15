@@ -8,6 +8,7 @@
 """
 import hashlib
 import hmac
+from urllib.parse import urlsplit, urlunsplit
 
 import requests
 
@@ -32,7 +33,8 @@ class DemoProvider:
 class BTCPayProvider:
     name = "btcpay"
 
-    def __init__(self, url, store_id, api_key, webhook_secret, proxy=None, timeout=30):
+    def __init__(self, url, store_id, api_key, webhook_secret, proxy=None, timeout=30,
+                 host_header=None, public_url=None):
         self.url = url.rstrip("/")
         self.store_id = store_id
         self.api_key = api_key
@@ -40,13 +42,27 @@ class BTCPayProvider:
         self.timeout = timeout
         # e.g. socks5h://127.0.0.1:9050 when BTCPay is itself an onion service
         self.proxies = {"http": proxy, "https": proxy} if proxy else None
+        # When BTCPay runs on the same machine we talk to its local nginx
+        # (e.g. http://127.0.0.1:8081) and pick the vhost via the Host header…
+        self.host_header = host_header
+        # …and rewrite checkout links to the public onion URL for visitors.
+        self.public_url = public_url.rstrip("/") if public_url else None
+
+    def _public(self, link):
+        if not link or not self.public_url:
+            return link
+        pub, src = urlsplit(self.public_url), urlsplit(link)
+        return urlunsplit((pub.scheme, pub.netloc, src.path, src.query, src.fragment))
 
     def _req(self, method, path, **kw):
         try:
             r = requests.request(
                 method,
                 f"{self.url}/api/v1/stores/{self.store_id}{path}",
-                headers={"Authorization": f"token {self.api_key}"},
+                headers={
+                    "Authorization": f"token {self.api_key}",
+                    **({"Host": self.host_header} if self.host_header else {}),
+                },
                 proxies=self.proxies,
                 timeout=self.timeout,
                 **kw,
@@ -68,7 +84,7 @@ class BTCPayProvider:
                 "checkout": {"redirectURL": redirect_url, "redirectAutomatically": True},
             },
         )
-        return {"invoice_id": data["id"], "checkout_url": data.get("checkoutLink")}
+        return {"invoice_id": data["id"], "checkout_url": self._public(data.get("checkoutLink"))}
 
     def invoice_status(self, invoice_id):
         """Return 'paid', 'expired' or 'pending'."""
@@ -93,6 +109,8 @@ def make_provider(cfg):
             cfg["BTCPAY_STORE_ID"],
             cfg["BTCPAY_API_KEY"],
             cfg["BTCPAY_WEBHOOK_SECRET"],
-            proxy=cfg.get("BTCPAY_PROXY"),
+            proxy=cfg.get("BTCPAY_PROXY") or None,
+            host_header=cfg.get("BTCPAY_HOST_HEADER") or None,
+            public_url=cfg.get("BTCPAY_PUBLIC_URL") or None,
         )
     return DemoProvider()
