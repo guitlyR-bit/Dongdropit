@@ -7,7 +7,7 @@ User=onionrank
 Group=onionrank
 WorkingDirectory=/opt/onionrank
 EnvironmentFile=/opt/onionrank/.env
-ExecStart=/opt/onionrank/.venv/bin/gunicorn -w 2 -b 127.0.0.1:8080 'onionrank:create_app()'
+ExecStart=/opt/onionrank/.venv/bin/gunicorn -w 2 -b 127.0.0.1:8080 --no-control-socket 'onionrank:create_app()'
 Restart=always
 # hardening
 NoNewPrivileges=true
