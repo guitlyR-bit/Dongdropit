@@ -93,9 +93,15 @@ export BTCPAYGEN_CRYPTO1="btc"
 export BTCPAYGEN_REVERSEPROXY="nginx"
 export BTCPAYGEN_ADDITIONAL_FRAGMENTS="opt-save-storage-s"   # pruned node (~80 GB)
 export BTCPAY_ENABLE_SSH=false
+export BTCPAYGEN_LIGHTNING="none"
+# BTCPay jen přes Tor – webový port nebude dostupný z internetu:
+export REVERSEPROXY_HTTP_PORT="127.0.0.1:8081"
+export REVERSEPROXY_HTTPS_PORT="127.0.0.1:8443"
 . ./btcpay-setup.sh -i
 ```
-Instalace zapne i Tor – onion adresu BTCPay najdeš v jeho webu v sekci *Server Settings → Services*.
+Instalace zapne i Tor. Onion adresu BTCPay zjistíš příkazem
+`cat /var/lib/docker/volumes/generated_tor_servicesdir/_data/BTCPayServer/hostname`.
+**Hned ji otevři v Tor Browseru a zaregistruj se – první registrovaný účet je admin.**
 Pak počkej, než se node zesynchronizuje (stav vidíš v BTCPay nahoře).
 
 > Ověř aktuální postup v dokumentaci docs.btcpayserver.org – může se mezi verzemi měnit.
