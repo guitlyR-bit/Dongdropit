@@ -91,6 +91,17 @@ def test_btcpay_local_mode(monkeypatch):
     assert inv["checkout_url"] == "http://" + "p" * 56 + ".onion/i/inv1?x=1"
 
 
+def test_reconcile(tmp_path, monkeypatch):
+    app = create_app({"TESTING": True, "DATABASE": str(tmp_path / "r.db")})
+    c = app.test_client()
+    c.post("/boost", data={"onion": A, "title": "Alfa", "amount_sats": 5000})
+    provider = app.extensions["payments"]
+    monkeypatch.setattr(provider, "invoice_status", lambda inv: "paid")
+    out = app.test_cli_runner().invoke(args=["reconcile"]).output
+    assert "updated 1" in out
+    assert "Alfa" in c.get("/").get_data(as_text=True)
+
+
 def test_btcpay_signature():
     p = BTCPayProvider("https://x", "s", "k", "whsec")
     body = b'{"a":1}'

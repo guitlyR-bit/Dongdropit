@@ -73,8 +73,11 @@ chown -R onionrank:onionrank "$APP_DIR"
 
 say "6/6 Systemd služba…"
 install -m 644 "$APP_DIR/deploy/onionrank.service" /etc/systemd/system/onionrank.service
+install -m 644 "$APP_DIR/deploy/onionrank-reconcile.service" /etc/systemd/system/onionrank-reconcile.service
+install -m 644 "$APP_DIR/deploy/onionrank-reconcile.timer" /etc/systemd/system/onionrank-reconcile.timer
 systemctl daemon-reload
 systemctl enable -q onionrank
+systemctl enable -q --now onionrank-reconcile.timer
 systemctl restart onionrank
 sleep 2
 if curl -fsS -o /dev/null "http://127.0.0.1:$PORT/"; then STATE="běží ✔"; else STATE="NEBĚŽÍ – viz: journalctl -u onionrank -n 50"; fi

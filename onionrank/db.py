@@ -179,6 +179,15 @@ def all_domains():
     ).fetchall()
 
 
+def pending_invoices(max_age_days=7):
+    """Pending orders with an invoice, young enough to still get paid."""
+    return get_db().execute(
+        """SELECT id, invoice_id FROM orders
+           WHERE status='pending' AND invoice_id IS NOT NULL AND created_at >= ?""",
+        (now() - max_age_days * 86400,),
+    ).fetchall()
+
+
 def pending_orders():
     return get_db().execute(
         """SELECT o.*, d.onion FROM orders o JOIN domains d ON d.id=o.domain_id

@@ -251,4 +251,21 @@ def create_app(test_config=None):
             db.mark_order(request.form["order_id"], status)
         return redirect(url_for("admin", t=t))
 
+    @app.cli.command("reconcile")
+    def reconcile():
+        """Ask the payment provider about pending orders (webhook fallback)."""
+        checked = changed = 0
+        for o in db.pending_invoices():
+            checked += 1
+            try:
+                st = provider.invoice_status(o["invoice_id"])
+            except PaymentError as e:
+                print(f"{o['id']}: {e}")
+                continue
+            if st in ("paid", "expired"):
+                db.mark_order(o["id"], st)
+                changed += 1
+                print(f"{o['id']}: {st}")
+        print(f"checked {checked}, updated {changed}")
+
     return app
