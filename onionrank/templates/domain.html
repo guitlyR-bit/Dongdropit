@@ -13,6 +13,15 @@
   <div class="card o"><h3>PAYMENTS</h3><b>{{ stats.payments }}</b><small>confirmed</small></div>
 </div>
 <section class="panel">
+  <div class="ph"><span><i class="dot"></i>EMBED_BADGE</span><span class="dim">for site owners</span></div>
+  <div class="form">
+    <p><img src="{{ url_for('badge_png', onion=d.onion) }}" width="220" height="44" alt="OnionRANK badge"></p>
+    <p class="dim">// show your rank on your site – copy this HTML (works in Tor Browser on Safest, no JavaScript):</p>
+    <textarea class="code" rows="3" readonly>&lt;a href="{{ base }}/d/{{ d.onion }}"&gt;&lt;img src="{{ base }}/badge/{{ d.onion }}.png" width="220" height="44" alt="Ranked on OnionRANK"&gt;&lt;/a&gt;</textarea>
+    <p class="dim">// sharper SVG version (blocked on the Safest level): <code>{{ base }}/badge/{{ d.onion }}.svg</code></p>
+  </div>
+</section>
+<section class="panel">
   <div class="ph"><span><i class="dot"></i>SUPPORTER_MSGS</span></div>
   <ul class="log">
   {% for m in messages %}<li><span class="dim">{{ m.paid_at|short }}</span> <span class="t">"{{ m.message }}"</span></li>

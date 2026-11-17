@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS domains (
     title       TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     banned      INTEGER NOT NULL DEFAULT 0,
+    approved    INTEGER NOT NULL DEFAULT 0,  -- free listing approved by admin
     created_at  INTEGER NOT NULL
 );
 
@@ -46,7 +47,22 @@ def close_db(_exc=None):
 
 
 def init_db():
-    get_db().executescript(SCHEMA)
+    db = get_db()
+    db.executescript(SCHEMA)
+    cols = {r["name"] for r in db.execute("PRAGMA table_info(domains)")}
+    if "approved" not in cols:
+        # existing domains came in through payments – keep them visible
+        db.execute("ALTER TABLE domains ADD COLUMN approved INTEGER NOT NULL DEFAULT 0")
+        db.execute("UPDATE domains SET approved = 1")
+        db.commit()
+
+
+# A domain is public when it is not banned and either an admin approved its
+# free listing or somebody paid for it.
+VISIBLE = (
+    "d.banned = 0 AND (d.approved = 1 OR EXISTS "
+    "(SELECT 1 FROM orders p WHERE p.domain_id = d.id AND p.status = 'paid'))"
+)
 
 
 def now():
@@ -54,7 +70,9 @@ def now():
 
 
 def ranking(since=None, limit=100):
-    """Return non-banned domains ordered by sats paid (optionally since a timestamp)."""
+    """Visible domains ordered by sats paid (optionally since a timestamp).
+
+    Free listings (0 sats) follow the paid ones, oldest first."""
     params = []
     paid_filter = "o.status = 'paid'"
     if since is not None:
@@ -68,10 +86,10 @@ def ranking(since=None, limit=100):
                COUNT(o.id) AS payments,
                MAX(o.paid_at) AS last_paid
         FROM domains d
-        JOIN orders o ON o.domain_id = d.id AND {paid_filter}
-        WHERE d.banned = 0
+        LEFT JOIN orders o ON o.domain_id = d.id AND {paid_filter}
+        WHERE {VISIBLE}
         GROUP BY d.id
-        ORDER BY total_sats DESC, last_paid ASC
+        ORDER BY total_sats DESC, last_paid IS NULL, last_paid ASC, d.created_at ASC
         LIMIT ?
         """,
         params,
@@ -106,6 +124,31 @@ def recent_messages(domain_id, limit=10):
            ORDER BY paid_at DESC LIMIT ?""",
         (domain_id, limit),
     ).fetchall()
+
+
+def is_visible(domain_id):
+    return get_db().execute(
+        f"SELECT 1 FROM domains d WHERE d.id = ? AND {VISIBLE}", (domain_id,)
+    ).fetchone() is not None
+
+
+def count_pending_submissions():
+    return get_db().execute(
+        f"SELECT COUNT(*) FROM domains d WHERE NOT ({VISIBLE}) AND d.banned = 0"
+    ).fetchone()[0]
+
+
+def pending_submissions():
+    return get_db().execute(
+        f"""SELECT d.* FROM domains d WHERE d.banned = 0 AND NOT ({VISIBLE})
+            ORDER BY d.created_at ASC LIMIT 200"""
+    ).fetchall()
+
+
+def set_approved(onion, approved):
+    db = get_db()
+    db.execute("UPDATE domains SET approved=? WHERE onion=?", (1 if approved else 0, onion))
+    db.commit()
 
 
 def upsert_domain(onion, title, description):
@@ -196,12 +239,14 @@ def pending_orders():
 
 
 def global_stats():
-    return get_db().execute(
-        """SELECT COALESCE(SUM(o.amount_sats),0) AS total_sats, COUNT(o.id) AS payments,
-                  COUNT(DISTINCT o.domain_id) AS domains
+    db = get_db()
+    paid = db.execute(
+        """SELECT COALESCE(SUM(o.amount_sats),0) AS total_sats, COUNT(o.id) AS payments
            FROM orders o JOIN domains d ON d.id=o.domain_id
            WHERE o.status='paid' AND d.banned=0"""
     ).fetchone()
+    domains = db.execute(f"SELECT COUNT(*) FROM domains d WHERE {VISIBLE}").fetchone()[0]
+    return {"total_sats": paid["total_sats"], "payments": paid["payments"], "domains": domains}
 
 
 def recent_payments(limit=6):

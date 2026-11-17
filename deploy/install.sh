@@ -16,7 +16,7 @@ say(){ printf '\033[1;32m[onionrank]\033[0m %s\n' "$*"; }
 say "1/6 Instaluji balíčky (tor, python, git)…"
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
-apt-get install -y -qq tor python3 python3-venv git curl >/dev/null
+apt-get install -y -qq tor python3 python3-venv git curl fonts-dejavu-core >/dev/null
 
 say "2/6 Stahuji aplikaci do $APP_DIR…"
 # the checkout is owned by the service user; let root's git work on it

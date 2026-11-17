@@ -29,14 +29,14 @@
       <td class="pos">{{ '%02d'|format(loop.index) }}</td>
       <td><a class="title" href="{{ url_for('domain', onion=r.onion) }}">{{ r.title }}</a>
         <code class="onion">{{ r.onion }}</code></td>
-      <td class="num val">{{ r.payments }}</td>
+      <td class="num val">{% if r.payments %}{{ r.payments }}{% else %}<span class="tag">free</span>{% endif %}</td>
       <td class="num hide-s dim">{{ r.last_paid|short }}</td>
     </tr>
     {% endif %}{% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p class="empty">&gt; leaderboard is empty_ <a href="{{ url_for('boost') }}">be the first</a></p>
+  <p class="empty">&gt; leaderboard is empty_ <a href="{{ url_for('submit') }}">list your site for free</a> or <a href="{{ url_for('boost') }}">boost it</a></p>
   {% endif %}
 </section>
 
@@ -52,6 +52,11 @@
     <h3>⚠ ELEVATE_RANK</h3>
     <p>Is your domain ranked too low? Pay in BTC and climb the leaderboard.</p>
     <a class="danger" href="{{ url_for('boost') }}">sudo boost --domain</a>
+  </section>
+  <section class="panel free">
+    <div class="ph"><span>NOT_LISTED_YET?</span></div>
+    <p>Add your onion site to the leaderboard for free.</p>
+    <a class="exec" href="{{ url_for('submit') }}">&gt; ./submit.sh</a>
   </section>
 </div>
 </div>

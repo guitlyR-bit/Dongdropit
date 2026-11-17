@@ -108,3 +108,71 @@ def test_btcpay_signature():
     sig = "sha256=" + hmac.new(b"whsec", body, hashlib.sha256).hexdigest()
     assert p.verify_webhook(body, sig)
     assert not p.verify_webhook(body, "sha256=00")
+
+
+def _challenge(app, answer=7, age=10):
+    import time as _t
+    ts = str(int(_t.time()) - age)
+    sig = hmac.new(app.config["SECRET_KEY"].encode(), f"{answer}:{ts}".encode(), "sha256").hexdigest()
+    return {"answer": str(answer), "ts": ts, "sig": sig}
+
+
+@pytest.fixture
+def app_(tmp_path):
+    return create_app({"TESTING": True, "DATABASE": str(tmp_path / "f.db"), "ADMIN_TOKEN": "secret",
+                       "SECRET_KEY": "k"})
+
+
+def test_free_submission_flow(app_):
+    c = app_.test_client()
+    data = {"onion": B, "title": "Bravo", **_challenge(app_)}
+    assert c.post("/submit", data=data).status_code == 302
+    # waiting for approval: not public
+    assert "Bravo" not in c.get("/").get_data(as_text=True)
+    assert c.get(f"/d/{B}").status_code == 404
+    assert c.get(f"/badge/{B}.png").status_code == 404
+    assert "Bravo" in c.get("/admin?t=secret").get_data(as_text=True)
+    # duplicate submission rejected
+    assert c.post("/submit", data=data).status_code == 400
+    c.post("/admin/approve", data={"t": "secret", "onion": B, "action": "approve"})
+    html = c.get("/").get_data(as_text=True)
+    assert "Bravo" in html and "free" in html
+    # paid domain ranks above the free one
+    boost(c, A, 5000, "Alfa")
+    html = c.get("/").get_data(as_text=True)
+    assert html.index("Alfa") < html.index("Bravo")
+
+
+def test_submission_reject_and_spam(app_):
+    c = app_.test_client()
+    assert c.post("/submit", data={"onion": B, "title": "X", **_challenge(app_, answer=7)} | {"answer": "8"}).status_code == 400
+    assert c.post("/submit", data={"onion": B, "title": "X", **_challenge(app_, age=0)}).status_code == 400
+    c.post("/submit", data={"onion": B, "title": "X", **_challenge(app_)})
+    c.post("/admin/approve", data={"t": "secret", "onion": B, "action": "reject"})
+    assert c.get(f"/d/{B}").status_code == 404
+    assert c.post("/submit", data={"onion": B, "title": "X", **_challenge(app_)}).status_code == 400
+
+
+def test_badges(app_):
+    c = app_.test_client()
+    boost(c, A, 5000, "Alfa")
+    png = c.get(f"/badge/{A}.png")
+    assert png.status_code == 200 and png.data[:8] == b"\x89PNG\r\n\x1a\n"
+    svg = c.get(f"/badge/{A}.svg").get_data(as_text=True)
+    assert "#01" in svg and svg.startswith("<svg")
+    assert f"/badge/{A}.png" in c.get(f"/d/{A}").get_data(as_text=True)
+
+
+def test_migration_keeps_old_domains_visible(tmp_path):
+    import sqlite3
+    path = tmp_path / "old.db"
+    con = sqlite3.connect(path)
+    con.executescript("""
+      CREATE TABLE domains (id INTEGER PRIMARY KEY AUTOINCREMENT, onion TEXT NOT NULL UNIQUE,
+        title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', banned INTEGER NOT NULL DEFAULT 0,
+        created_at INTEGER NOT NULL);
+      INSERT INTO domains (onion, title, created_at) VALUES ('%s', 'Legacy', 1);
+    """ % A)
+    con.commit(); con.close()
+    c = create_app({"TESTING": True, "DATABASE": str(path)}).test_client()
+    assert "Legacy" in c.get("/").get_data(as_text=True)

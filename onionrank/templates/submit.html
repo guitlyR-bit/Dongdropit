@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Submit – OnionRANK{% endblock %}
+{% block content %}
+<div class="head"><div><h1>SUBMIT_DOMAIN</h1><p class="status">List your onion site for <b>free</b>. Pay later to climb higher.</p></div></div>
+<form method="post" class="panel form">
+  <label>ONION_ADDRESS <span class="dim">(v3)</span>
+    <input name="onion" required maxlength="100" value="{{ form.get('onion','') }}" placeholder="abc…xyz.onion"></label>
+  <label>TITLE <input name="title" required maxlength="80" value="{{ form.get('title','') }}"></label>
+  <label>DESCRIPTION <span class="dim">(optional)</span>
+    <textarea name="description" maxlength="280" rows="2">{{ form.get('description','') }}</textarea></label>
+  <label>ANTI_SPAM <span class="dim">— what is {{ ch.q }}?</span>
+    <input name="answer" required inputmode="numeric" maxlength="3" autocomplete="off"></label>
+  <input type="hidden" name="ts" value="{{ ch.ts }}"><input type="hidden" name="sig" value="{{ ch.sig }}">
+  <p class="dim">// free listings are reviewed by an admin and start at the bottom of the leaderboard.<br>// sites with illegal content are rejected.</p>
+  <button type="submit" class="exec">&gt; SUBMIT_FOR_REVIEW</button>
+</form>
+{% endblock %}

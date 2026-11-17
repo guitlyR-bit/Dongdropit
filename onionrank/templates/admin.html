@@ -3,12 +3,24 @@
 {% block content %}
 <div class="head"><div><h1>ADMIN_CONSOLE</h1><p class="status">Status: <b>ROOT</b></p></div></div>
 <section class="panel">
+<div class="ph"><span><i class="dot"></i>FREE_SUBMISSIONS</span><span class="dim">[{{ submissions|length }} WAITING]</span></div>
+<table class="rank">
+{% for d in submissions %}
+<tr><td><b>{{ d.title }}</b><code class="onion">{{ d.onion }}</code>{% if d.description %}<small class="dim">{{ d.description }}</small>{% endif %}</td>
+<td class="dim">{{ d.created_at|short }}</td>
+<td><form method="post" action="{{ url_for('admin_approve') }}">
+  <input type="hidden" name="t" value="{{ t }}"><input type="hidden" name="onion" value="{{ d.onion }}">
+  <button class="exec" name="action" value="approve">approve</button> <button class="danger" name="action" value="reject">reject</button></form></td></tr>
+{% else %}<tr><td class="dim">no submissions waiting</td></tr>{% endfor %}
+</table>
+</section>
+<section class="panel">
 <div class="ph"><span>DOMAINS</span></div>
 <table class="rank">
 <thead><tr><th>DOMAIN</th><th class="num">SATS</th><th>STATE</th><th></th></tr></thead>
 {% for d in domains %}
 <tr><td>{{ d.title }}<code class="onion">{{ d.onion }}</code></td><td class="num">{{ d.total_sats|sats }}</td>
-<td class="{{ 'err' if d.banned else 'ok' }}">{{ 'BANNED' if d.banned else 'ACTIVE' }}</td>
+<td class="{{ 'err' if d.banned else 'ok' }}">{{ 'BANNED' if d.banned else ('ACTIVE' if d.approved or d.total_sats else 'PENDING') }}</td>
 <td><form method="post" action="{{ url_for('admin_ban') }}">
   <input type="hidden" name="t" value="{{ t }}"><input type="hidden" name="onion" value="{{ d.onion }}">
   <input type="hidden" name="banned" value="{{ '0' if d.banned else '1' }}">

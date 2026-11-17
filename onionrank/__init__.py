@@ -6,9 +6,9 @@ import re
 import secrets
 import time
 
-from flask import Flask, abort, flash, redirect, render_template, request, url_for
+from flask import Flask, Response, abort, flash, redirect, render_template, request, url_for
 
-from . import db
+from . import badge, db
 from .payments import PaymentError, make_provider
 
 # v3 onion address: 56 base32 chars (a-z, 2-7) ending in 'd' (version 3)
@@ -61,6 +61,7 @@ def create_app(test_config=None):
         SITE_URL=os.environ.get("SITE_URL", ""),  # your own .onion URL, for redirects
         MIN_SATS=int(os.environ.get("MIN_SATS", "1000")),
         MAX_SATS=int(os.environ.get("MAX_SATS", "100000000")),
+        MAX_PENDING_SUBMISSIONS=int(os.environ.get("MAX_PENDING_SUBMISSIONS", "300")),
     )
     if test_config:
         app.config.update(test_config)
@@ -107,18 +108,97 @@ def create_app(test_config=None):
             recent=db.recent_payments(),
         )
 
+    def visible_domain(onion):
+        d = db.domain_by_onion(onion)
+        if not d or not db.is_visible(d["id"]):
+            abort(404)
+        return d
+
+    def site_base():
+        return app.config["SITE_URL"].rstrip("/") or request.host_url.rstrip("/")
+
     @app.get("/d/<onion>")
     def domain(onion):
-        d = db.domain_by_onion(onion)
-        if not d or d["banned"]:
-            abort(404)
+        d = visible_domain(onion)
         return render_template(
             "domain.html",
             d=d,
             stats=db.domain_stats(d["id"]),
             rank=db.domain_rank(d["id"]),
             messages=db.recent_messages(d["id"]),
+            base=site_base(),
         )
+
+    # ------------------------------------------------------------------ badges
+
+    @app.get("/badge/<onion>.png")
+    def badge_png(onion):
+        d = visible_domain(onion)
+        resp = Response(badge.png(db.domain_rank(d["id"])), mimetype="image/png")
+        resp.headers["Cache-Control"] = "public, max-age=600"
+        return resp
+
+    @app.get("/badge/<onion>.svg")
+    def badge_svg(onion):
+        d = visible_domain(onion)
+        resp = Response(badge.svg(db.domain_rank(d["id"])), mimetype="image/svg+xml")
+        resp.headers["Cache-Control"] = "public, max-age=600"
+        return resp
+
+    # ------------------------------------------------------------ free listing
+
+    def make_challenge():
+        a, b = secrets.randbelow(9) + 1, secrets.randbelow(9) + 1
+        ts = str(int(time.time()))
+        return {"q": f"{a} + {b}", "ts": ts, "sig": _sig(a + b, ts)}
+
+    def _sig(answer, ts):
+        key = app.config["SECRET_KEY"].encode()
+        return hmac.new(key, f"{answer}:{ts}".encode(), "sha256").hexdigest()
+
+    def check_challenge(form):
+        try:
+            answer, ts = int(form.get("answer", "")), int(form.get("ts", ""))
+        except ValueError:
+            return False
+        if not 3 <= time.time() - ts <= 3600:  # too fast (bot) or too old
+            return False
+        return hmac.compare_digest(_sig(answer, str(ts)), form.get("sig", ""))
+
+    @app.route("/submit", methods=["GET", "POST"])
+    def submit():
+        form = request.form
+        if request.method == "GET":
+            return render_template("submit.html", form={}, ch=make_challenge())
+
+        onion = normalize_onion(form.get("onion"))
+        title = (form.get("title") or "").strip()[:80]
+        description = (form.get("description") or "").strip()[:280]
+        errors = []
+        if not onion:
+            errors.append("Invalid address – enter a v3 .onion address (56 characters).")
+        if not title:
+            errors.append("Please enter a title.")
+        if not check_challenge(form):
+            errors.append("Wrong answer to the anti-spam question, please try again.")
+        existing = db.domain_by_onion(onion) if onion else None
+        if existing:
+            if existing["banned"]:
+                errors.append("This domain has been removed from the leaderboard.")
+            elif db.is_visible(existing["id"]):
+                errors.append("This domain is already listed.")
+            else:
+                errors.append("This domain is already waiting for approval.")
+        if not errors and db.count_pending_submissions() >= app.config["MAX_PENDING_SUBMISSIONS"]:
+            errors.append("The review queue is full right now, please try again later.")
+        if errors:
+            for e in errors:
+                flash(e, "error")
+            return render_template("submit.html", form=form, ch=make_challenge()), 400
+
+        db.upsert_domain(onion, title, description)
+        flash("Submitted! Your domain will appear once an admin approves it.", "ok")
+        return redirect(url_for("submit"))
 
     @app.route("/boost", methods=["GET", "POST"])
     def boost():
@@ -235,7 +315,23 @@ def create_app(test_config=None):
     @app.get("/admin")
     def admin():
         t = require_admin()
-        return render_template("admin.html", t=t, domains=db.all_domains(), pending=db.pending_orders())
+        return render_template(
+            "admin.html",
+            t=t,
+            domains=db.all_domains(),
+            pending=db.pending_orders(),
+            submissions=db.pending_submissions(),
+        )
+
+    @app.post("/admin/approve")
+    def admin_approve():
+        t = require_admin()
+        onion = request.form["onion"]
+        if request.form.get("action") == "reject":
+            db.set_banned(onion, True)
+        else:
+            db.set_approved(onion, True)
+        return redirect(url_for("admin", t=t))
 
     @app.post("/admin/ban")
     def admin_ban():
