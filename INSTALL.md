@@ -19,7 +19,15 @@ Potřebuješ linuxový server s **Debian 12** nebo **Ubuntu 22.04/24.04**:
 
 Připoj se: `ssh root@IP_SERVERU`
 
-> Tip: hned nastav přihlášení SSH klíčem a vypni heslo (`PasswordAuthentication no` v `/etc/ssh/sshd_config`).
+První kroky na serveru: `passwd`, `apt update && apt upgrade -y`, `apt install -y ufw unattended-upgrades`,
+`ufw allow OpenSSH && ufw enable`.
+
+> Tip: nastav přihlášení SSH klíčem (`ssh-keygen -t ed25519`, pak `ssh-copy-id root@IP`) a po ověření vypni hesla:
+> ```bash
+> printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/00-keys-only.conf
+> sshd -t && systemctl reload ssh
+> ```
+> (`00-` zajistí přednost před `50-cloud-init.conf`, který hesla na Ubuntu často povoluje.)
 
 ---
 
@@ -91,7 +99,7 @@ export BTCPAY_HOST="btcpay.local"
 export NBITCOIN_NETWORK="mainnet"
 export BTCPAYGEN_CRYPTO1="btc"
 export BTCPAYGEN_REVERSEPROXY="nginx"
-export BTCPAYGEN_ADDITIONAL_FRAGMENTS="opt-save-storage-s"   # pruned node (~80 GB)
+export BTCPAYGEN_ADDITIONAL_FRAGMENTS="opt-save-storage-s;opt-add-tor"   # pruned node + Tor
 export BTCPAY_ENABLE_SSH=false
 export BTCPAYGEN_LIGHTNING="none"
 # BTCPay jen přes Tor – webový port nebude dostupný z internetu:
@@ -120,23 +128,27 @@ Pak počkej, než se node zesynchronizuje (stav vidíš v BTCPay nahoře).
 6. Store ID najdeš v *Store Settings → General*.
 
 ### 4.4 Propojení s OnionRANK
+Hodnoty do `.env` nepiš ručně – použij skript, který se na ně zeptá, ověří je a otestuje spojení:
 ```bash
-sudo nano /opt/onionrank/.env
+sudo bash /opt/onionrank/deploy/configure-btcpay.sh
 ```
-```
-PAYMENT_PROVIDER=btcpay
-BTCPAY_URL=http://BTCPAY_ONION_ADRESA.onion
-BTCPAY_STORE_ID=…
-BTCPAY_API_KEY=…
-BTCPAY_WEBHOOK_SECRET=…
-BTCPAY_PROXY=socks5h://127.0.0.1:9050
-```
+Zadáš onion adresu BTCPay, Store ID, API klíč a webhook secret (Enter = ponechat uloženou hodnotu).
+Když BTCPay běží na stejném serveru, skript zapne přímé spojení přes `127.0.0.1:8081`
+(rychlejší než přes Tor); návštěvníci jsou dál přesměrováni na onion adresu BTCPay.
+Správný výsledek: `✔ HTTP 200 – OnionRANK je propojený s BTCPay.`
+
+Platby se připisují dvěma cestami: webhookem z BTCPay a **automatickou kontrolou každých 5 minut**
+(`onionrank-reconcile.timer`), takže se nic neztratí, ani když webhook přes Tor nedorazí.
+
+Kontrola, že BTCPay není vidět z internetu (všechny řádky musí začínat `127.0.0.1:`):
 ```bash
-sudo systemctl restart onionrank
+ss -tlnp | grep -E ':(80|443|8081|8443)\b'
 ```
-Žlutý DEMO pruh zmizí. Udělej testovací platbu s minimální částkou a zkontroluj, že se po potvrzení
-objeví v žebříčku. Kdyby webhook přes Tor nedorazil, aplikace si stav ověří sama při otevření stránky
-objednávky; v nejhorším ji potvrdíš ručně v adminu.
+
+### 4.5 Testovací platba
+Po dokončení synchronizace nodu: `./boost.sh` → 10 000 sats → zaplatit → po potvrzení v bloku
+se doména objeví v žebříčku. Stav: `journalctl -u onionrank-reconcile -n 5 --no-pager`,
+doručení webhooku v BTCPay → Store Settings → Webhooks (200/204 = OK, 401 = špatný secret).
 
 ---
 
@@ -146,6 +158,8 @@ objednávky; v nejhorším ji potvrdíš ručně v adminu.
 |---|---|
 | Stav aplikace | `systemctl status onionrank` |
 | Logy | `journalctl -u onionrank -f` |
+| Kontrola plateb | `journalctl -u onionrank-reconcile -n 5` |
+| Nastavení BTCPay | `bash /opt/onionrank/deploy/configure-btcpay.sh` |
 | Restart | `systemctl restart onionrank` |
 | Onion adresa | `cat /var/lib/tor/onionrank/hostname` |
 | Admin token | `grep ADMIN_TOKEN /opt/onionrank/.env` |
